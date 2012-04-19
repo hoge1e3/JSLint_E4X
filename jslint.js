@@ -309,6 +309,7 @@
 // value is the JSLINT function itself. That function is also an object that
 // can contain data and other functions.
 
+// test modiy by hoge1e3
 var JSLINT = (function () {
     'use strict';
 
