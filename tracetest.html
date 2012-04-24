@@ -1,0 +1,52 @@
+<script>
+  traceBuf="";
+  ind="";
+  function s(v) {
+	  if (typeof v=="function") {
+		  if (v.name) return v.name;
+		  v=(""+v).split(/\r?\n/)[0];
+	  } else if (typeof v=="string") {
+		  v=v.replace(/\n/g,"\\n");
+		  v=v.replace(/</g,"&lt;");
+	  	  v=v.replace(/>/g,"&gt;");
+	  } else {
+		  v=v+"";
+	  }
+  	  v=v.substr(0,50);
+  	  return v;
+  }
+  function debug(str) {
+ 	traceBuf+=ind+"[Debug]"+str+"\n";
+  }
+  function trace(name, args) {
+     traceBuf+=ind+name.replace(/\s/g,"");
+     for (var i=0 ; i<args.length ; i++) {
+    	 traceBuf+=" "+s(args[i]);
+     }
+     traceBuf+="\n";
+     ind+=" ";
+  }
+  function untrace(str) {
+	 //    traceBuf+="Untr"+"\n";
+	 if (ind.length==0) {
+		 //throw "No more untrace";
+	 }
+	 ind=ind.substring(0,ind.length-1);
+  }
+</script>
+<script src="jslint.js"></script>
+<script>
+  //var r=JSLINT("{a:3};");
+  traceBuf="";
+  var r=JSLINT("var a = <html/>;");
+  debug("JSLint result="+r);
+  for (var i in JSLINT.errors) {
+	  var e=JSLINT.errors[i];
+	  if (e) debug(e.reason);
+  }
+  document.writeln("<pre rows=160 cols=60>"+traceBuf+"</pre>");
+  /*  traceBuf="";ind="";
+  var r2=JSLINT("var a={a:3};");
+  document.writeln("<textarea rows=160 cols=60>"+traceBuf+"</textarea>");*/
+
+</script>

@@ -309,7 +309,6 @@
 // value is the JSLINT function itself. That function is also an object that
 // can contain data and other functions.
 
-// test modiy by hoge1e3
 var JSLINT = (function () {
     'use strict';
 
@@ -3870,8 +3869,17 @@ klass:              do {
     assignop('<<=', '<<');
     assignop('>>=', '>>');
     assignop('>>>=', '>>>');
-
-
+    // Parser XML Literal ( Currently only <tagname/> ) by hoge1e3
+    prefix('<', function () {
+        advance();
+        if (token.id!=="(identifier)") {
+        	stop('expected_a_b', token, "(identifier)", token.id);
+        	return this;
+        }
+        advance("/");
+        advance(">");
+    	return this;
+    });
     prefix('{', function () {
         var get, i, j, name, p, set, seen = {};
         this.arity = 'prefix';
