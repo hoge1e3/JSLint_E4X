@@ -886,6 +886,8 @@ var JSLINT = (function () {
         nx = /[\u0000-\u001f'\\\u007f-\u009f\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,
 // outer html token
         ox = /[>&]|<[\/!]?|--/,
+// outer e4x token
+        o4x = /[>&]|<[\/!]?|--|\{/,
 // attributes characters
         qx = /[^a-zA-Z0-9+\-_\/. ]/,
 // style
@@ -1713,6 +1715,7 @@ klass:              do {
 // token -- this is called by advance to get the next token.
             token: function () {
                 trace("            token: function () {",arguments);
+                //debug("xmode=="+xmode);
                 // Spc count =12
                 var c, i, snippet;
                 for (;;) {
@@ -2459,6 +2462,9 @@ klass:              do {
         var left;
         if (next_token.id === '(end)') {
             stop('unexpected_a', token, next_token.id);
+        }
+        if (next_token.string.charAt(0) === '<') {
+            return xml();
         }
         advance();
         if (option.safe && scope[token.string] &&
@@ -3938,13 +3944,14 @@ klass:              do {
     assignop('>>>=', '>>>');
     prefix('<', function () {
         debug("Parse XML Literal!");
+        html();/*
         advance();
         if (token.id!=="(identifier)") {
         	stop('expected_a_b', token, "(identifier)", token.id);
         	return this;
         }
         advance("/");
-        advance(">");
+        advance(">");*/
     	return this;
     });
     // Parse JSON?
@@ -5914,6 +5921,212 @@ klass:              do {
         trace("closetag",arguments);
         // Spc count =4
         untrace();return '</' + name + '>';
+        untrace();
+    }
+    function xml() {
+        trace("xml",arguments);
+        // Spc count =4
+        var attribute, attributes, is_empty, name, old_white = option.white,
+            quote, tag_name, tag, wmode;
+        xmode = 'html';
+        xquote = '';
+        stack = null;
+        for (;;) {
+            switch (next_token.string) {
+            case '<':
+                xmode = 'html';
+                advance('<');
+                attributes = {};
+                tag_name = next_token;
+                name = tag_name.string;
+                advance_identifier(name);
+                if (option.cap) {
+                    name = name.toLowerCase();
+                }
+                tag_name.name = name;
+                if (!stack) {
+                    stack = [];
+                    do_begin(name);
+                }
+                tag = html_tag[name];
+                if (typeof tag !== 'object') {
+                    stop('unrecognized_tag_a', tag_name, name);
+                }
+                is_empty = tag.empty;
+                tag_name.type = name;
+                for (;;) {
+                    if (next_token.id === '/') {
+                        advance('/');
+                        if (next_token.id !== '>') {
+                            warn('expected_a_b', next_token, '>', artifact());
+                        }
+                        break;
+                    }
+                    if (next_token.id && next_token.id.charAt(0) === '>') {
+                        break;
+                    }
+                    if (!next_token.identifier) {
+                        if (next_token.id === '(end)' || next_token.id === '(error)') {
+                            warn('expected_a_b', next_token, '>', artifact());
+                        }
+                        warn('bad_name_a');
+                    }
+                    option.white = false;
+                    spaces();
+                    attribute = next_token.string;
+                    option.white = old_white;
+                    advance();
+                    if (!option.cap && attribute !== attribute.toLowerCase()) {
+                        warn('attribute_case_a', token);
+                    }
+                    attribute = attribute.toLowerCase();
+                    xquote = '';
+                    if (Object.prototype.hasOwnProperty.call(attributes, attribute)) {
+                        warn('duplicate_a', token, attribute);
+                    }
+                    if (attribute.slice(0, 2) === 'on') {
+                        if (!option.on) {
+                            warn('html_handlers');
+                        }
+                        xmode = 'scriptstring';
+                        advance('=');
+                        quote = next_token.id;
+                        if (quote !== '"' && quote !== '\'') {
+                            stop('expected_a_b', next_token, '"', artifact());
+                        }
+                        xquote = quote;
+                        wmode = option.white;
+                        option.white = true;
+                        advance(quote);
+                        use_strict();
+                        statements();
+                        option.white = wmode;
+                        if (next_token.id !== quote) {
+                            stop('expected_a_b', next_token, quote, artifact());
+                        }
+                        xmode = 'html';
+                        xquote = '';
+                        advance(quote);
+                        tag = false;
+                    } else if (attribute === 'style') {
+                        xmode = 'scriptstring';
+                        advance('=');
+                        quote = next_token.id;
+                        if (quote !== '"' && quote !== '\'') {
+                            stop('expected_a_b', next_token, '"', artifact());
+                        }
+                        xmode = 'styleproperty';
+                        xquote = quote;
+                        advance(quote);
+                        substyle();
+                        xmode = 'html';
+                        xquote = '';
+                        advance(quote);
+                        tag = false;
+                    } else {
+                        if (next_token.id === '=') {
+                            advance('=');
+                            tag = next_token.string;
+                            if (!next_token.identifier &&
+                                    next_token.id !== '"' &&
+                                    next_token.id !== '\'' &&
+                                    next_token.id !== '(string)' &&
+                                    next_token.id !== '(string)' &&
+                                    next_token.id !== '(color)') {
+                                warn('expected_attribute_value_a', token, attribute);
+                            }
+                            advance();
+                        } else {
+                            tag = true;
+                        }
+                    }
+                    attributes[attribute] = tag;
+                    do_attribute(attribute, tag);
+                }
+                do_tag(name, attributes);
+                if (!is_empty) {
+                    stack.push(tag_name);
+                }
+                xmode = 'outer';
+                advance('>');
+                break;
+            case '</':
+                xmode = 'html';
+                advance('</');
+                if (!next_token.identifier) {
+                    warn('bad_name_a');
+                }
+                name = next_token.string;
+                if (option.cap) {
+                    name = name.toLowerCase();
+                }
+                advance();
+                if (!stack) {
+                    stop('unexpected_a', next_token, closetag(name));
+                }
+                tag_name = stack.pop();
+                if (!tag_name) {
+                    stop('unexpected_a', next_token, closetag(name));
+                }
+                if (tag_name.name !== name) {
+                    stop('expected_a_b',
+                        next_token, closetag(tag_name.name), closetag(name));
+                }
+                if (next_token.id !== '>') {
+                    stop('expected_a_b', next_token, '>', artifact());
+                }
+                if (stack.length>0) {
+                	xmode = 'outer';
+                } else {
+                	xmode = '';
+                }
+                advance('>');
+                debug(" HTML "+name+" End token="+token.id+" - next="+next_token.id+" stack.len="+stack.length);
+                break;
+            case '<!':
+                if (option.safe) {
+                    warn('adsafe_a');
+                }
+                xmode = 'html';
+                for (;;) {
+                    advance();
+                    if (next_token.id === '>' || next_token.id === '(end)') {
+                        break;
+                    }
+                    if (next_token.string.indexOf('--') >= 0) {
+                        stop('unexpected_a', next_token, '--');
+                    }
+                    if (next_token.string.indexOf('<') >= 0) {
+                        stop('unexpected_a', next_token, '<');
+                    }
+                    if (next_token.string.indexOf('>') >= 0) {
+                        stop('unexpected_a', next_token, '>');
+                    }
+                }
+                xmode = 'outer';
+                advance('>');
+                break;
+            case '(end)':
+                if (stack.length !== 0) {
+                    warn('missing_a', next_token, '</' + stack.pop().string + '>');
+                }
+                return;
+            default:
+                if (next_token.id === '(end)') {
+                    stop('missing_a', next_token,
+                        '</' + stack[stack.length - 1].string + '>');
+                } else {
+                    advance();
+                }
+            }
+            if (stack && stack.length === 0 && (option.adsafe ||
+                    !option.fragment || next_token.id === '(end)')) {
+                break;
+            }
+        }
+        /*if (next_token.id !== '(end)') {
+            stop('unexpected_a');
+        }*/
         untrace();
     }
     function html() {

@@ -1,0 +1,34 @@
+<script>
+  traceBuf="";
+  ind="";
+  function s(v) {
+	  if (typeof v=="function") {
+		  if (v.name) return v.name;
+		  v=(""+v).split(/\r?\n/)[0];
+	  } else if (typeof v=="string") {
+		  v=v.replace(/\n/g,"\\n");
+		  v=v.replace(/</g,"&lt;");
+	  	  v=v.replace(/>/g,"&gt;");
+	  } else {
+		  v=v+"";
+	  }
+  	  v=v.substr(0,50);
+  	  return v;
+  }
+  function _debug(str) {
+ 	traceBuf+=ind+"[Debug]"+s(str)+"\n";
+  }
+</script>
+<script src="jslint.js"></script>
+<script>
+  //var r=JSLINT("{a:3};");
+  traceBuf="";
+  var r=JSLINT("var a = <html>   <body bgcolor=\"red\">   <div>test</div>  </body></html>;");
+  _debug("JSLint result="+r);
+  for (var i in JSLINT.errors) {
+	  var e=JSLINT.errors[i];
+	  if (e) _debug(e.reason);
+  }
+  document.writeln("<pre rows=160 cols=60>"+traceBuf+"</pre>");
+
+</script>

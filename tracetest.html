@@ -16,7 +16,7 @@
   	  return v;
   }
   function debug(str) {
- 	traceBuf+=ind+"[Debug]"+str+"\n";
+ 	traceBuf+=ind+"[Debug]"+s(str)+"\n";
   }
   function trace(name, args) {
      traceBuf+=ind+name.replace(/\s/g,"");
@@ -34,11 +34,11 @@
 	 ind=ind.substring(0,ind.length-1);
   }
 </script>
-<script src="jslint.js"></script>
+<script src="jslint_trace.js"></script>
 <script>
   //var r=JSLINT("{a:3};");
   traceBuf="";
-  var r=JSLINT("var a = <html/>;");
+  var r=JSLINT("var a = <html>   <body>   <div>test</div>  </body></html>;");
   debug("JSLint result="+r);
   for (var i in JSLINT.errors) {
 	  var e=JSLINT.errors[i];
