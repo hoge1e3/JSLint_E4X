@@ -23,7 +23,10 @@
 <script>
   //var r=JSLINT("{a:3};");
   traceBuf="";
-  var r=JSLINT("var a = <html>   <body bgcolor=\"red\">   <div>test</div>  </body></html>;");
+  var r=JSLINT(
+         "var $,t;\n"+
+         "var a = <span name={ $.test(3) } id='test' > \n"+
+         "<body bgcolor=\"red\">  <div>test is {$.a()} !!</div>  </body></span>;",{white:true});
   _debug("JSLint result="+r);
   for (var i in JSLINT.errors) {
 	  var e=JSLINT.errors[i];

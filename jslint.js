@@ -939,6 +939,8 @@ var JSLINT = (function () {
         dx = /[\[\]\/\\"'*<>.&:(){}+=#]/,
 // html token
         hx = /^\s*(['"=>\/&#]|<(?:\/|\!(?:--)?)?|[a-zA-Z][a-zA-Z0-9_\-:]*|[0-9]+|--)/,
+// xml token
+        xmlx = /^\s*(['"=>\/&#]|<(?:\/|\!(?:--)?)?|[a-zA-Z][a-zA-Z0-9_\-:]*|[0-9]+|--|\{|\})/,
 // identifier
         ix = /^([a-zA-Z_$][a-zA-Z0-9_$]*)$/,
 // javascript url
@@ -949,6 +951,8 @@ var JSLINT = (function () {
         nx = /[\u0000-\u001f'\\\u007f-\u009f\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,
 // outer html token
         ox = /[>&]|<[\/!]?|--/,
+// outer xml token
+        o4x = /[>&]|<[\/!]?|--|\{/,
 // attributes characters
         qx = /[^a-zA-Z0-9+\-_\/. ]/,
 // style
@@ -962,6 +966,8 @@ var JSLINT = (function () {
         rx = {
             outer: hx,
             html: hx,
+            xmlouter: xmlx,
+            xml: xmlx,
             style: sx,
             styleproperty: ssx
         };
@@ -1737,6 +1743,20 @@ klass:              do {
                             return it('(end)');
                         }
                     }
+                    while (xmode === 'xmlouter') {
+                        i = source_row.search(o4x);
+                        if (i === 0) {
+                            break;
+                        } else if (i > 0) {
+                            character += 1;
+                            source_row = source_row.slice(i);
+                            break;
+                        } else {
+                            if (!next_line()) {
+                                return it('(end)', '');
+                            }
+                        }
+                    }
                     while (xmode === 'outer') {
                         i = source_row.search(ox);
                         if (i === 0) {
@@ -2387,6 +2407,7 @@ klass:              do {
 
 
     function semicolon() {
+        //_debug("semicolon");
         if (next_token.id !== ';') {
             warn_at('expected_a_b', token.line, token.thru, ';', artifact());
         } else {
@@ -3873,7 +3894,7 @@ klass:              do {
     assignop('>>=', '>>');
     assignop('>>>=', '>>>');
     // Parser XML Literal ( Currently only <tagname/> ) by hoge1e3
-    prefix('<', function () {
+    /*prefix('<', function () {
         advance();
         if (token.id!=="(identifier)") {
         	stop('expected_a_b', token, "(identifier)", token.id);
@@ -3882,7 +3903,7 @@ klass:              do {
         advance("/");
         advance(">");
     	return this;
-    });
+    });*/
     prefix('{', function () {
         var get, i, j, name, p, set, seen = {};
         this.arity = 'prefix';
@@ -5804,13 +5825,21 @@ klass:              do {
     function xml() {
         var attribute, attributes, is_empty, name, old_white = option.white,
             quote, tag_name, tag, wmode;
-        xmode = 'html';
+        xmode = 'xml';
         xquote = '';
         stack = null;
+        var xmlouter='xmlouter';
         for (;;) {
             switch (next_token.string) {
+            case '{':
+                xmode = '';
+                advance('{');
+                expression(0);
+                xmode = xmlouter;
+                advance('}');
+                break;
             case '<':
-                xmode = 'html';
+                xmode = 'xml';
                 advance('<');
                 attributes = {};
                 tag_name = next_token;
@@ -5822,7 +5851,7 @@ klass:              do {
                 tag_name.name = name;
                 if (!stack) {
                     stack = [];
-                    do_begin(name);
+                    //do_begin(name);
                 }
                 tag = html_tag[name];
                 if (typeof tag !== 'object') {
@@ -5860,7 +5889,7 @@ klass:              do {
                     if (Object.prototype.hasOwnProperty.call(attributes, attribute)) {
                         warn('duplicate_a', token, attribute);
                     }
-                    if (attribute.slice(0, 2) === 'on') {
+                    /*if (attribute.slice(0, 2) === 'on') {
                         if (!option.on) {
                             warn('html_handlers');
                         }
@@ -5899,17 +5928,41 @@ klass:              do {
                         xquote = '';
                         advance(quote);
                         tag = false;
-                    } else {
+                    } else {*/
+                    if (true) { // on*** or style process later.
                         if (next_token.id === '=') {
                             advance('=');
-                            tag = next_token.string;
-                            if (!next_token.identifier &&
-                                    next_token.id !== '"' &&
-                                    next_token.id !== '\'' &&
-                                    next_token.id !== '(string)' &&
-                                    next_token.id !== '(string)' &&
-                                    next_token.id !== '(color)') {
-                                warn('expected_attribute_value_a', token, attribute);
+                            if (next_token.id === '{') {
+                                xmode='';
+                                //_debug("adv. next_token "+next_token.id);
+                                advance("{");
+                                //_debug("adv2. next_token "+next_token.id);
+
+                                /*step_in('expression');
+                                no_space();
+                                edge();
+                                if (next_token.id === 'function') {
+                                    next_token.immed = true;
+                                }*/
+                                //_debug("expr { }");
+                                var value = expression(0);
+                                /*value.paren = true;
+                                no_space();
+                                step_out('}', this);*/
+
+                                tag=value;
+                                xmode='xml';
+                                //advance("}");
+                            } else {
+                                tag = next_token.string;
+                                if (!next_token.identifier &&
+                                        next_token.id !== '"' &&
+                                        next_token.id !== '\'' &&
+                                        next_token.id !== '(string)' &&
+                                        next_token.id !== '(string)' &&
+                                        next_token.id !== '(color)') {
+                                    warn('expected_attribute_value_a', token, attribute);
+                                }
                             }
                             advance();
                         } else {
@@ -5917,13 +5970,13 @@ klass:              do {
                         }
                     }
                     attributes[attribute] = tag;
-                    do_attribute(attribute, tag);
+                    //do_e4x_attribute(attribute, tag);
                 }
-                do_tag(name, attributes);
+                //do_e4x_tag(name, attributes);
                 if (!is_empty) {
                     stack.push(tag_name);
                 }
-                xmode = 'outer';
+                xmode = xmlouter;
                 advance('>');
                 break;
             case '</':
@@ -5952,7 +6005,7 @@ klass:              do {
                     stop('expected_a_b', next_token, '>', artifact());
                 }
                 if (stack.length>0) {
-                	xmode = 'outer';
+                	xmode = xmlouter;
                 } else {
                 	xmode = '';
                 }
@@ -5978,7 +6031,7 @@ klass:              do {
                         stop('unexpected_a', next_token, '>');
                     }
                 }
-                xmode = 'outer';
+                xmode = xmlouter;
                 advance('>');
                 break;
             case '(end)':
