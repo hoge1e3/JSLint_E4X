@@ -2526,6 +2526,7 @@ klass:              do {
             anonname = 'anonymous';
             funct['(verb)'] = token.string;
         }
+        //_debug(token.id);
         if (initial === true && token.fud) {
             left = token.fud();
         } else {
@@ -5944,7 +5945,6 @@ klass:              do {
                                 if (next_token.id === 'function') {
                                     next_token.immed = true;
                                 }*/
-                                //_debug("expr { }");
                                 var value = expression(0);
                                 /*value.paren = true;
                                 no_space();
