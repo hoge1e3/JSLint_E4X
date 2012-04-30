@@ -939,6 +939,8 @@ var JSLINT = (function () {
         dx = /[\[\]\/\\"'*<>.&:(){}+=#]/,
 // html token
         hx = /^\s*(['"=>\/&#]|<(?:\/|\!(?:--)?)?|[a-zA-Z][a-zA-Z0-9_\-:]*|[0-9]+|--)/,
+// xml token
+        xmlx = /^\s*(['"=>\/&#]|<(?:\/|\!(?:--)?)?|[a-zA-Z][a-zA-Z0-9_\-:]*|[0-9]+|--|\{|\})/,
 // identifier
         ix = /^([a-zA-Z_$][a-zA-Z0-9_$]*)$/,
 // javascript url
@@ -962,6 +964,7 @@ var JSLINT = (function () {
         rx = {
             outer: hx,
             html: hx,
+            xml: xmlx,
             style: sx,
             styleproperty: ssx
         };
@@ -2387,6 +2390,7 @@ klass:              do {
 
 
     function semicolon() {
+        //_debug("semicolon");
         if (next_token.id !== ';') {
             warn_at('expected_a_b', token.line, token.thru, ';', artifact());
         } else {
@@ -2505,6 +2509,7 @@ klass:              do {
             anonname = 'anonymous';
             funct['(verb)'] = token.string;
         }
+        //_debug(token.id);
         if (initial === true && token.fud) {
             left = token.fud();
         } else {
@@ -3873,7 +3878,7 @@ klass:              do {
     assignop('>>=', '>>');
     assignop('>>>=', '>>>');
     // Parser XML Literal ( Currently only <tagname/> ) by hoge1e3
-    prefix('<', function () {
+    /*prefix('<', function () {
         advance();
         if (token.id!=="(identifier)") {
         	stop('expected_a_b', token, "(identifier)", token.id);
@@ -3882,7 +3887,7 @@ klass:              do {
         advance("/");
         advance(">");
     	return this;
-    });
+    });*/
     prefix('{', function () {
         var get, i, j, name, p, set, seen = {};
         this.arity = 'prefix';
@@ -5804,13 +5809,13 @@ klass:              do {
     function xml() {
         var attribute, attributes, is_empty, name, old_white = option.white,
             quote, tag_name, tag, wmode;
-        xmode = 'html';
+        xmode = 'xml';
         xquote = '';
         stack = null;
         for (;;) {
             switch (next_token.string) {
             case '<':
-                xmode = 'html';
+                xmode = 'xml';
                 advance('<');
                 attributes = {};
                 tag_name = next_token;
@@ -5822,7 +5827,7 @@ klass:              do {
                 tag_name.name = name;
                 if (!stack) {
                     stack = [];
-                    do_begin(name);
+                    //do_begin(name);
                 }
                 tag = html_tag[name];
                 if (typeof tag !== 'object') {
@@ -5860,7 +5865,7 @@ klass:              do {
                     if (Object.prototype.hasOwnProperty.call(attributes, attribute)) {
                         warn('duplicate_a', token, attribute);
                     }
-                    if (attribute.slice(0, 2) === 'on') {
+                    /*if (attribute.slice(0, 2) === 'on') {
                         if (!option.on) {
                             warn('html_handlers');
                         }
@@ -5899,17 +5904,38 @@ klass:              do {
                         xquote = '';
                         advance(quote);
                         tag = false;
-                    } else {
+                    } else {*/
+                    if (true) { // on*** or style process later.
                         if (next_token.id === '=') {
                             advance('=');
-                            tag = next_token.string;
-                            if (!next_token.identifier &&
-                                    next_token.id !== '"' &&
-                                    next_token.id !== '\'' &&
-                                    next_token.id !== '(string)' &&
-                                    next_token.id !== '(string)' &&
-                                    next_token.id !== '(color)') {
-                                warn('expected_attribute_value_a', token, attribute);
+                            if (next_token.id === '{') {
+                                advance("{");
+                                xmode='';
+
+                                /*step_in('expression');
+                                no_space();
+                                edge();
+                                if (next_token.id === 'function') {
+                                    next_token.immed = true;
+                                }*/
+                                var value = expression(0);
+                                /*value.paren = true;
+                                no_space();
+                                step_out('}', this);*/
+
+                                tag=value;
+                                xmode='xml';
+                                //advance("}");
+                            } else {
+                                tag = next_token.string;
+                                if (!next_token.identifier &&
+                                        next_token.id !== '"' &&
+                                        next_token.id !== '\'' &&
+                                        next_token.id !== '(string)' &&
+                                        next_token.id !== '(string)' &&
+                                        next_token.id !== '(color)') {
+                                    warn('expected_attribute_value_a', token, attribute);
+                                }
                             }
                             advance();
                         } else {
@@ -5917,9 +5943,9 @@ klass:              do {
                         }
                     }
                     attributes[attribute] = tag;
-                    do_attribute(attribute, tag);
+                    //do_e4x_attribute(attribute, tag);
                 }
-                do_tag(name, attributes);
+                //do_e4x_tag(name, attributes);
                 if (!is_empty) {
                     stack.push(tag_name);
                 }
