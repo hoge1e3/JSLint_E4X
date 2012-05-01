@@ -5825,7 +5825,7 @@ klass:              do {
 
     function xml() {
         var attribute, attributes, is_empty, name, old_white = option.white,
-            quote, tag_name, tag, wmode;
+            quote, tag_name, tag, wmode, old_stack=stack;
         xmode = 'xml';
         xquote = '';
         stack = null;
@@ -6038,6 +6038,7 @@ klass:              do {
                 if (stack.length !== 0) {
                     warn('missing_a', next_token, '</' + stack.pop().string + '>');
                 }
+                stack = old_stack;
                 return;
             default:
                 if (next_token.id === '(end)') {
@@ -6052,6 +6053,7 @@ klass:              do {
                 break;
             }
         }
+        stack = old_stack;
     }
 
     function html() {

@@ -20,17 +20,38 @@
   }
 </script>
 <script src="jslint.js"></script>
+<pre id="testprog" class="prog"><!--
+var $,t;
+var a = <span name={ $.test(3) } id='test' >
+           <body bgcolor="red">
+              <div>test is {$.a()} !!</div>  </body>
+
+        </span>;
+--></pre>
+<pre id="testprog2" class="prog"><!--
+var $,t;
+var a = <div name={ $.test(3) } id='test' >
+             {$.template(function (e) {
+                 return <span>{e}</span>;
+             })}
+        </div>;
+--></pre>
+
 <script>
   //var r=JSLINT("{a:3};");
   traceBuf="";
-  var r=JSLINT(
-         "var $,t;\n"+
-         "var a = <span name={ $.test(3) } id='test' > \n"+
-         "<body bgcolor=\"red\">  <div>test is {$.a()} !!</div>  </body></span>;",{white:true});
-  _debug("JSLint result="+r);
-  for (var i in JSLINT.errors) {
-	  var e=JSLINT.errors[i];
-	  if (e) _debug(e.reason);
+  var tests=document.getElementsByClassName("prog");
+  for (var j=0 ; j<tests.length ; j++) {
+      var t=tests[j];
+      _debug("Testing "+t.id);
+      t=t.innerHTML;
+      t=t.replace(/^<!--/,"").replace(/-->$/,"");
+      var r=JSLINT(t,{white:true,sloppy:true});
+      _debug("JSLint result="+r);
+      for (var i in JSLINT.errors) {
+    	  var e=JSLINT.errors[i];
+    	  if (e) _debug(e.reason);
+      }
   }
   document.writeln("<pre rows=160 cols=60>"+traceBuf+"</pre>");
 
