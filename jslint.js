@@ -5830,6 +5830,7 @@ klass:              do {
         xquote = '';
         stack = null;
         var xmlouter='xmlouter';
+        var xmllist=false;
         for (;;) {
             switch (next_token.string) {
             case '{':
@@ -5843,23 +5844,30 @@ klass:              do {
                 xmode = 'xml';
                 advance('<');
                 attributes = {};
-                tag_name = next_token;
-                name = tag_name.string;
-                advance_identifier(name);
-                if (option.cap) {
-                    name = name.toLowerCase();
+                if ((!stack || stack.length===0) && next_token.id===">") {
+                    xmllist=true;
+                    name="";
+                    is_empty=false;
+                    tag_name={name:"", is_empty:false};
+                } else {
+                    tag_name = next_token;
+                    name = tag_name.string;
+                    advance_identifier(name);
+                    if (option.cap) {
+                        name = name.toLowerCase();
+                    }
+                    tag_name.name = name;
+                    tag = html_tag[name];
+                    if (typeof tag !== 'object') {
+                        stop('unrecognized_tag_a', tag_name, name);
+                    }
+                    is_empty = tag.empty;
+                    tag_name.type = name;
                 }
-                tag_name.name = name;
                 if (!stack) {
                     stack = [];
                     //do_begin(name);
                 }
-                tag = html_tag[name];
-                if (typeof tag !== 'object') {
-                    stop('unrecognized_tag_a', tag_name, name);
-                }
-                is_empty = tag.empty;
-                tag_name.type = name;
                 for (;;) {
                     if (next_token.id === '/') {
                         advance('/');
@@ -5982,24 +5990,28 @@ klass:              do {
             case '</':
                 xmode = 'html';
                 advance('</');
-                if (!next_token.identifier) {
-                    warn('bad_name_a');
-                }
-                name = next_token.string;
-                if (option.cap) {
-                    name = name.toLowerCase();
-                }
-                advance();
-                if (!stack) {
-                    stop('unexpected_a', next_token, closetag(name));
-                }
-                tag_name = stack.pop();
-                if (!tag_name) {
-                    stop('unexpected_a', next_token, closetag(name));
-                }
-                if (tag_name.name !== name) {
-                    stop('expected_a_b',
-                        next_token, closetag(tag_name.name), closetag(name));
+                if (xmllist && stack && stack.length===1) {
+                    stack.pop();
+                } else {
+                    if (!next_token.identifier) {
+                        warn('bad_name_a');
+                    }
+                    name = next_token.string;
+                    if (option.cap) {
+                        name = name.toLowerCase();
+                    }
+                    advance();
+                    if (!stack) {
+                        stop('unexpected_a', next_token, closetag(name));
+                    }
+                    tag_name = stack.pop();
+                    if (!tag_name) {
+                        stop('unexpected_a', next_token, closetag(name));
+                    }
+                    if (tag_name.name !== name) {
+                        stop('expected_a_b',
+                                next_token, closetag(tag_name.name), closetag(name));
+                    }
                 }
                 if (next_token.id !== '>') {
                     stop('expected_a_b', next_token, '>', artifact());

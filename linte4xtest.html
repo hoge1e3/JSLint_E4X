@@ -36,6 +36,17 @@ var a = <div name={ $.test(3) } id='test' >
              })}
         </div>;
 --></pre>
+<pre id="testprog3" class="prog"><!--
+var $,t;
+var a = <div name={ $.test(3) } id='test' >
+             {$.template(function (e) {
+                 return <>
+                    <span>{e}</span>
+                    <font color="red">{e}</font>
+                 </>;
+             })}
+        </div>;
+--></pre>
 
 <script>
   //var r=JSLINT("{a:3};");
