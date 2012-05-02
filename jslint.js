@@ -163,6 +163,7 @@
 //     css        true, if CSS workarounds should be tolerated
 //     debug      true, if debugger statements should be allowed
 //     devel      true, if logging should be allowed (console, alert, etc.)
+//     e4x        true, if E4X XML literal should be allowed
 //     eqeq       true, if == should be allowed
 //     es5        true, if ES5 syntax should be allowed
 //     evil       true, if eval should be allowed
@@ -1787,7 +1788,6 @@ klass:              do {
                             }
                         }
                     } else {
-
 //      identifier
 
                         c = snippet.charAt(0);
@@ -2407,7 +2407,6 @@ klass:              do {
 
 
     function semicolon() {
-        //_debug("semicolon");
         if (next_token.id !== ';') {
             warn_at('expected_a_b', token.line, token.thru, ';', artifact());
         } else {
@@ -2513,7 +2512,7 @@ klass:              do {
         if (next_token.id === '(end)') {
             stop('unexpected_a', token, next_token.id);
         }
-        if (next_token.string.charAt(0) === '<') {
+        if (option.e4x && next_token.id === '<') {
             return xml();
         }
         advance();
@@ -2526,7 +2525,6 @@ klass:              do {
             anonname = 'anonymous';
             funct['(verb)'] = token.string;
         }
-        //_debug(token.id);
         if (initial === true && token.fud) {
             left = token.fud();
         } else {
@@ -3894,17 +3892,8 @@ klass:              do {
     assignop('<<=', '<<');
     assignop('>>=', '>>');
     assignop('>>>=', '>>>');
-    // Parser XML Literal ( Currently only <tagname/> ) by hoge1e3
-    /*prefix('<', function () {
-        advance();
-        if (token.id!=="(identifier)") {
-        	stop('expected_a_b', token, "(identifier)", token.id);
-        	return this;
-        }
-        advance("/");
-        advance(">");
-    	return this;
-    });*/
+
+
     prefix('{', function () {
         var get, i, j, name, p, set, seen = {};
         this.arity = 'prefix';
@@ -5857,16 +5846,17 @@ klass:              do {
                         name = name.toLowerCase();
                     }
                     tag_name.name = name;
+                    is_empty=false;
+                    /*Skip checking html tag.
                     tag = html_tag[name];
                     if (typeof tag !== 'object') {
                         stop('unrecognized_tag_a', tag_name, name);
                     }
                     is_empty = tag.empty;
-                    tag_name.type = name;
+                    tag_name.type = name;*/
                 }
                 if (!stack) {
                     stack = [];
-                    //do_begin(name);
                 }
                 for (;;) {
                     if (next_token.id === '/') {
@@ -5874,6 +5864,7 @@ klass:              do {
                         if (next_token.id !== '>') {
                             warn('expected_a_b', next_token, '>', artifact());
                         }
+                        is_empty=true;
                         break;
                     }
                     if (next_token.id && next_token.id.charAt(0) === '>') {
@@ -5898,93 +5889,41 @@ klass:              do {
                     if (Object.prototype.hasOwnProperty.call(attributes, attribute)) {
                         warn('duplicate_a', token, attribute);
                     }
-                    /*if (attribute.slice(0, 2) === 'on') {
-                        if (!option.on) {
-                            warn('html_handlers');
-                        }
-                        xmode = 'scriptstring';
+                    // on*** or style process later.
+                    if (next_token.id === '=') {
                         advance('=');
-                        quote = next_token.id;
-                        if (quote !== '"' && quote !== '\'') {
-                            stop('expected_a_b', next_token, '"', artifact());
-                        }
-                        xquote = quote;
-                        wmode = option.white;
-                        option.white = true;
-                        advance(quote);
-                        use_strict();
-                        statements();
-                        option.white = wmode;
-                        if (next_token.id !== quote) {
-                            stop('expected_a_b', next_token, quote, artifact());
-                        }
-                        xmode = 'html';
-                        xquote = '';
-                        advance(quote);
-                        tag = false;
-                    } else if (attribute === 'style') {
-                        xmode = 'scriptstring';
-                        advance('=');
-                        quote = next_token.id;
-                        if (quote !== '"' && quote !== '\'') {
-                            stop('expected_a_b', next_token, '"', artifact());
-                        }
-                        xmode = 'styleproperty';
-                        xquote = quote;
-                        advance(quote);
-                        substyle();
-                        xmode = 'html';
-                        xquote = '';
-                        advance(quote);
-                        tag = false;
-                    } else {*/
-                    if (true) { // on*** or style process later.
-                        if (next_token.id === '=') {
-                            advance('=');
-                            if (next_token.id === '{') {
-                                xmode='';
-                                //_debug("adv. next_token "+next_token.id);
-                                advance("{");
-                                //_debug("adv2. next_token "+next_token.id);
-
-                                /*step_in('expression');
-                                no_space();
-                                edge();
-                                if (next_token.id === 'function') {
-                                    next_token.immed = true;
-                                }*/
-                                var value = expression(0);
-                                /*value.paren = true;
-                                no_space();
-                                step_out('}', this);*/
-
-                                tag=value;
-                                xmode='xml';
-                                //advance("}");
-                            } else {
-                                tag = next_token.string;
-                                if (!next_token.identifier &&
-                                        next_token.id !== '"' &&
-                                        next_token.id !== '\'' &&
-                                        next_token.id !== '(string)' &&
-                                        next_token.id !== '(string)' &&
-                                        next_token.id !== '(color)') {
-                                    warn('expected_attribute_value_a', token, attribute);
-                                }
-                            }
-                            advance();
+                        if (next_token.id === '{') {
+                            xmode='';
+                            advance("{");
+                            var value = expression(0);
+                            tag=value;
+                            xmode='xml';
+                            prereg=false;
                         } else {
-                            tag = true;
+                            tag = next_token.string;
+                            if (!next_token.identifier &&
+                                    next_token.id !== '"' &&
+                                    next_token.id !== '\'' &&
+                                    next_token.id !== '(string)' &&
+                                    next_token.id !== '(string)' &&
+                                    next_token.id !== '(color)') {
+                                warn('expected_attribute_value_a', token, attribute);
+                            }
                         }
+                        advance();
+                    } else {
+                        tag = true;
                     }
                     attributes[attribute] = tag;
-                    //do_e4x_attribute(attribute, tag);
                 }
-                //do_e4x_tag(name, attributes);
                 if (!is_empty) {
                     stack.push(tag_name);
                 }
-                xmode = xmlouter;
+                if (stack.length>0) {
+                    xmode = xmlouter;
+                } else {
+                    xmode = '';
+                }
                 advance('>');
                 break;
             case '</':
@@ -6017,9 +5956,9 @@ klass:              do {
                     stop('expected_a_b', next_token, '>', artifact());
                 }
                 if (stack.length>0) {
-                	xmode = xmlouter;
+                    xmode = xmlouter;
                 } else {
-                	xmode = '';
+                    xmode = '';
                 }
                 advance('>');
                 break;
@@ -6051,7 +5990,7 @@ klass:              do {
                     warn('missing_a', next_token, '</' + stack.pop().string + '>');
                 }
                 stack = old_stack;
-                return;
+                return "XML";
             default:
                 if (next_token.id === '(end)') {
                     stop('missing_a', next_token,
@@ -6066,6 +6005,7 @@ klass:              do {
             }
         }
         stack = old_stack;
+        return "XML";
     }
 
     function html() {

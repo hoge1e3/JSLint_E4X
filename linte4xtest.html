@@ -12,7 +12,7 @@
 	  } else {
 		  v=v+"";
 	  }
-  	  v=v.substr(0,50);
+  	  v=v.substr(0,100);
   	  return v;
   }
   function _debug(str) {
@@ -41,13 +41,29 @@ var $,t;
 var a = <div name={ $.test(3) } id='test' >
              {$.template(function (e) {
                  return <>
-                    <span>{e}</span>
+                    <span>{e}&nbsp;</span>
                     <font color="red">{e}</font>
                  </>;
              })}
         </div>;
 --></pre>
-
+<pre id="testprog4" class="prog"><!--
+var $,prototype;
+var a=<html>
+   <script>aaa</script>
+   <input name="test"/>
+</html>;
+--></pre>
+<pre id="testprog5" class="prog"><!--
+var $=<input type="hidden" name="assignment" value={this} /> ;
+--></pre>
+<pre id="testprog6" class="prog"><!--
+      var baka="<script>alert('baka')</script>";
+      var cl='">uho</a>';
+--></pre>
+<pre id="testprog7" class="prog"><!--
+var a=<span/>;
+--></pre>
 <script>
   //var r=JSLINT("{a:3};");
   traceBuf="";
@@ -57,11 +73,11 @@ var a = <div name={ $.test(3) } id='test' >
       _debug("Testing "+t.id);
       t=t.innerHTML;
       t=t.replace(/^<!--/,"").replace(/-->$/,"");
-      var r=JSLINT(t,{white:true,sloppy:true});
+      var r=JSLINT(t,{e4x:true, white:true,sloppy:true});
       _debug("JSLint result="+r);
       for (var i in JSLINT.errors) {
     	  var e=JSLINT.errors[i];
-    	  if (e) _debug(e.reason);
+    	  if (e) _debug(e.reason+" - "+e.line+":"+e.character);
       }
   }
   document.writeln("<pre rows=160 cols=60>"+traceBuf+"</pre>");
