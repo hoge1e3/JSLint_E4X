@@ -1788,6 +1788,7 @@ klass:              do {
                             }
                         }
                     } else {
+
 //      identifier
 
                         c = snippet.charAt(0);
