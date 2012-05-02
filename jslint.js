@@ -5848,13 +5848,6 @@ klass:              do {
                     }
                     tag_name.name = name;
                     is_empty=false;
-                    /*Skip checking html tag.
-                    tag = html_tag[name];
-                    if (typeof tag !== 'object') {
-                        stop('unrecognized_tag_a', tag_name, name);
-                    }
-                    is_empty = tag.empty;
-                    tag_name.type = name;*/
                 }
                 if (!stack) {
                     stack = [];
@@ -5890,7 +5883,6 @@ klass:              do {
                     if (Object.prototype.hasOwnProperty.call(attributes, attribute)) {
                         warn('duplicate_a', token, attribute);
                     }
-                    // on*** or style process later.
                     if (next_token.id === '=') {
                         advance('=');
                         if (next_token.id === '{') {
